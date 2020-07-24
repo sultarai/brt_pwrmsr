@@ -125,6 +125,8 @@ while True:
     echonetLiteFrame += "\xE7"          # EPC(参考:EL p.3-7 AppH p.3-275)
     echonetLiteFrame += "\x00"          # PDC(参考:EL p.3-9)
 
+    print("--- SEND ---")
+
     # コマンド送信
     command = "SKSENDTO 1 {0} 0E1A 1 {1:04X} {2}".format(ipv6Addr, len(echonetLiteFrame), echonetLiteFrame)
     ser.write(command)
