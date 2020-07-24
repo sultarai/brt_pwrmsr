@@ -17,24 +17,31 @@ serialPortDev = '/dev/ttyUSB0'  # Linux(ラズパイなど）の場合
 # シリアルポート初期化
 ser = serial.Serial(serialPortDev, 115200)
 
+print("--- VERSION ---")
 # とりあえずバージョンを取得してみる（やらなくてもOK）
 ser.write("SKVER\r\n")
-print(ser.readline(), end="") # エコーバック
+# print(ser.readline(), end="") # エコーバック
+ser.readline()
 print(ser.readline(), end="") # バージョン
 
+print("--- SET PWD ---")
 # Bルート認証パスワード設定
 ser.write("SKSETPWD C " + rbpwd + "\r\n")
-print(ser.readline(), end="") # エコーバック
 print(ser.readline(), end="") # OKが来るはず（チェック無し）
+# print(ser.readline(), end="") # エコーバック
+ser.readline()
 
+print("--- SET ID ---")
 # Bルート認証ID設定
 ser.write("SKSETRBID " + rbid + "\r\n")
-print(ser.readline(), end="") # エコーバック
 print(ser.readline(), end="") # OKが来るはず（チェック無し）
+# print(ser.readline(), end="") # エコーバック
+ser.readline()
 
 scanDuration = 6;   # スキャン時間
 scanRes = {} # スキャン結果の入れ物
 
+print("--- SCAN ---")
 # スキャンのリトライループ（何か見つかるまで）
 while not scanRes.has_key("Channel") :
     # アクティブスキャン（IE あり）を行う
@@ -68,16 +75,19 @@ while not scanRes.has_key("Channel") :
         print("スキャンリトライオーバー")
         sys.exit()  #### 糸冬了 ####
 
+print("--- SET CHANNEL ---")
 # スキャン結果からChannelを設定。
 ser.write("SKSREG S2 " + scanRes["Channel"] + "\r\n")
 print(ser.readline(), end="") # エコーバック
 print(ser.readline(), end="") # OKが来るはず（チェック無し）
 
+print("--- SET PAN ID ---")
 # スキャン結果からPan IDを設定
 ser.write("SKSREG S3 " + scanRes["Pan ID"] + "\r\n")
 print(ser.readline(), end="") # エコーバック
 print(ser.readline(), end="") # OKが来るはず（チェック無し）
 
+print("--- SET ADDRES ---")
 # MACアドレス(64bit)をIPV6リンクローカルアドレスに変換。
 # (BP35A1の機能を使って変換しているけど、単に文字列変換すればいいのではという話も？？)
 ser.write("SKLL64 " + scanRes["Addr"] + "\r\n")
@@ -85,6 +95,7 @@ print(ser.readline(), end="") # エコーバック
 ipv6Addr = ser.readline().strip()
 print(ipv6Addr)
 
+print("--- START SKJOIN ---")
 # PANA 接続シーケンスを開始します。
 ser.write("SKJOIN " + ipv6Addr + "\r\n");
 print(ser.readline(), end="") # エコーバック
@@ -102,6 +113,8 @@ while not bConnected :
         # 接続完了！
         bConnected = True
 
+print("--- SKJOIN SUCCESS!! ---")
+
 # これ以降、シリアル通信のタイムアウトを設定
 ser.timeout = 2
 
@@ -109,6 +122,7 @@ ser.timeout = 2
 # (ECHONET-Lite_Ver.1.12_02.pdf p.4-16)
 print(ser.readline(), end="") #無視
 
+print("--- START KEISOKU ---")
 while True:
     # ECHONET Lite フレーム作成
     # 　参考資料
@@ -125,15 +139,16 @@ while True:
     echonetLiteFrame += "\xE7"          # EPC(参考:EL p.3-7 AppH p.3-275)
     echonetLiteFrame += "\x00"          # PDC(参考:EL p.3-9)
 
-    print("--- SEND ---")
-
     # コマンド送信
     command = "SKSENDTO 1 {0} 0E1A 1 {1:04X} {2}".format(ipv6Addr, len(echonetLiteFrame), echonetLiteFrame)
     ser.write(command)
 
-    print(ser.readline(), end="") # エコーバック
-    print(ser.readline(), end="") # EVENT 21 が来るはず（チェック無し）
-    print(ser.readline(), end="") # OKが来るはず（チェック無し）
+    # print(ser.readline(), end="") # エコーバック
+    ser.readline()
+    # print(ser.readline(), end="") # EVENT 21 が来るはず（チェック無し）
+    ser.readline()
+    # print(ser.readline(), end="") # OKが来るはず（チェック無し）
+    ser.readline()
     line = ser.readline()         # ERXUDPが来るはず
     print(line, end="")
 
@@ -156,6 +171,8 @@ while True:
                 hexPower = line[-8:]    # 最後の4バイト（16進数で8文字）が瞬時電力計測値
                 intPower = int(hexPower, 16)
                 print(u"瞬時電力計測値:{0}[W]".format(intPower))
+    else :
+        print("Error: ERXUDP")
 
     time.sleep(5)
 
