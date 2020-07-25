@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import sys
+import os
 import serial
 import threading
 import time
@@ -63,9 +64,16 @@ def thread_read():
     print("=== READ THREAD END ===")
 
 # Bルート認証ID
-rbid  = ""
+rbid  = os.environ.get('RBID')
+if(rbid is None):
+    print("Please set RBID")
+    sys.exit()
 # Bルート認証パスワード
-rbpwd = ""
+rbpwd = os.environ.get('RBPWD')
+if(rbpwd is None):
+    print("Please set RBPWD")
+    sys.exit()
+ 
 # シリアルポートデバイス名
 serialPortDev = '/dev/ttyUSB0'  # Linux(ラズパイなど）の場合
 
@@ -128,7 +136,7 @@ while not scanRes.has_key("Channel") :
     if 7 < scanDuration and not scanRes.has_key("Channel"):
         # 引数としては14まで指定できるが、7で失敗したらそれ以上は無駄っぽい
         print("スキャンリトライオーバー")
-        sys.exit()  #### 糸冬了 ####
+        sys.exit()  #### 終了 ####
 
 print("--- SET CHANNEL ---")
 # スキャン結果からChannelを設定。
